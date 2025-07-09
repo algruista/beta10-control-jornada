@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beta10 Control Jornada</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007AFF">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="status-bar">
+        <div id="statusTime">00:00</div>
+        <div>
+            <span id="gpsIndicator">📍</span>
+            <span id="connectionIndicator">🟢</span>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <h1>Control Jornada</h1>
+        <div>Beta10</div>
+    </header>
+
+    <div class="setup-panel" id="setupPanel">
+        <h2>Configuración Inicial</h2>
+        <p>Para usar esta app necesitas configurar el endpoint de Cloudflare Workers.</p>
+        <label>
+            <strong>URL del Worker:</strong>
+            <input type="url" id="workerUrl" placeholder="https://tu-worker.username.workers.dev">
+        </label>
+        <button onclick="saveConfig()">Guardar Configuración</button>
+    </div>
+
+    <div id="mainApp" class="hidden">
+        <div class="state-card" id="stateCard">
+            <div id="stateIcon">🏠</div>
+            <div id="stateTitle">FUERA DE JORNADA</div>
+            <div id="stateTime">--:--:--</div>
+            <div id="stateSubtitle">Pulsa iniciar</div>
+        </div>
+
+        <div class="gps-panel">
+            <div>📍 <span id="gpsText">Obteniendo GPS...</span></div>
+            <div id="gpsCoords">---.------°, ---.------°</div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="primaryBtn" onclick="handlePrimaryAction()">
+                <span>▶️</span> Iniciar Jornada
+            </button>
+        </div>
+
+        <div class="pause-panel hidden" id="pausePanel">
+            <h3>Pausas</h3>
+            <div class="pause-options">
+                <button onclick="startPause('desayuno')">☕ Desayuno</button>
+                <button onclick="startPause('comida')">🍽️ Comida</button>
+            </div>
+        </div>
+
+        <div class="summary">
+            <h3>Resumen</h3>
+            <div class="summary-grid">
+                <div>
+                    <span>Entrada</span>
+                    <strong id="summaryStart">--:--</strong>
+                </div>
+                <div>
+                    <span>Trabajado</span>
+                    <strong id="summaryWorked">00:00</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="modal">
+        <div class="modal-backdrop" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <h4 id="modalTitle">Confirmar</h4>
+            <p id="modalMessage">¿Estás seguro?</p>
+            <div class="modal-actions">
+                <button onclick="closeModal()">Cancelar</button>
+                <button onclick="confirmAction()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
