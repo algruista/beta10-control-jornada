@@ -1,13 +1,13 @@
 const CACHE_NAME = 'beta10-control-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/script.js',
-    '/manifest.json',
-    '/alarm.mp3',
-    '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png'
+    '.',
+    'index.html',
+    'style.css',
+    'script.js',
+    'manifest.json',
+    'alarm.mp3',
+    'icons/icon-192x192.png',
+    'icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
