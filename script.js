@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Registrar el Service Worker para PWA
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
+            navigator.serviceWorker.register('service-worker.js')
                 .then(reg => logActivity('Service Worker registrado con éxito.'))
                 .catch(err => logActivity(`Error al registrar Service Worker: ${err}`));
         }
