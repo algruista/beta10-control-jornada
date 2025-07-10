@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //
     // --- ⚠️ CONFIGURACIÓN IMPORTANTE ⚠️ ---
     // ESTA URL LA OBTENDRÁS EN EL PASO 3 DE LAS INSTRUCCIONES
-    const PROXY_URL = 'https://beta10-proxy.mark-mlg.workers.dev/'; 
+    const PROXY_URL = 'https://beta10-control-jornada.onrender.com'; 
     //
     // --- FIN DE LA CONFIGURACIÓN ---
     //
