@@ -43,11 +43,12 @@ app.post('/api/beta10', async (req, res) => {
 
         const page = await browser.newPage();
         page.setDefaultNavigationTimeout(60000); // Timeout de 60s para todas las navegaciones
+        page.setDefaultTimeout(60000);
         const BASE_URL = 'https://9teknic.movilidadbeta10.es:9001';
 
         // 1. Ir a la página de login
         console.log('Paso 1: Navegando a la página de login.');
-        await page.goto(BASE_URL + '/');
+        await page.goto(BASE_URL + '/', { waitUntil: 'networkidle2' });
 
         // 2. Hacer login
         console.log('Paso 2: Rellenando credenciales y haciendo login.');
