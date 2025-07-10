@@ -38,8 +38,7 @@ app.post('/api/beta10', async (req, res) => {
                 '--disable-gpu',
                 '--single-process'
             ],
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-            timeout: 60000,
+            executablePath:'/usr/bin/google-chrome'
         });
 
         const page = await browser.newPage();
