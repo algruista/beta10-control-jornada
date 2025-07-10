@@ -1,0 +1,16 @@
+{
+  "name": "beta10-backend",
+  "version": "1.0.0",
+  "description": "Puppeteer proxy for Beta10",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^22.12.1"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
