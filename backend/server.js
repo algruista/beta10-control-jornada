@@ -38,7 +38,7 @@ app.post('/api/beta10', async (req, res) => {
                 '--disable-gpu',
                 '--single-process'
             ],
-            executablePath:'/usr/bin/google-chrome'
+            executablePath:'/usr/bin/google-chrome-stable'
         });
 
         const page = await browser.newPage();
