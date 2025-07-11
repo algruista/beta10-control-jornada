@@ -1,4 +1,4 @@
-// server.js - VERSIÓN FINAL v2 - Esperando el diálogo de confirmación
+// server.js - VERSIÓN FINAL v3 - Con login automático
 
 const express = require('express');
 const puppeteer = require('puppeteer');
@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 });
 
 app.post('/api/beta10', async (req, res) => {
-    console.log("Petición recibida para /api/beta10 con estrategia de cookie.");
+    console.log("Petición recibida para /api/beta10 con login automático.");
     const { action, point, location } = req.body;
 
     if (!action || !point || !location) {
@@ -33,36 +33,63 @@ app.post('/api/beta10', async (req, res) => {
 
         const page = await browser.newPage();
         const BASE_URL = 'https://9teknic.movilidadbeta10.es:9001';
-
-        console.log('Paso 1: Inyectando cookie de sesión.');
-        const sessionCookie = {
-            name: 'sessionid',
-            value: process.env.BETA10_SESSION_COOKIE,
-            domain: '9teknic.movilidadbeta10.es',
-            path: '/',
-            httpOnly: true,
-            secure: true
-        };
-        await page.setCookie(sessionCookie);
         
         const presenciaUrl = `${BASE_URL}/presencia/${action}/`;
-        console.log(`Paso 2: Navegando a ${presenciaUrl} con la sesión activa.`);
+        console.log(`Paso 1: Navegando a ${presenciaUrl}`);
         await page.goto(presenciaUrl, { waitUntil: 'networkidle2' });
 
-        if (page.url().includes('login')) {
-            throw new Error('La cookie de sesión ha caducado o es inválida.');
+        // Verificar si estamos en la página de login
+        const isLoginPage = await page.$('#username');
+        if (isLoginPage) {
+            console.log('Paso 2: Detectado formulario de login. Haciendo login automático...');
+            
+            // Rellenar credenciales
+            await page.type('#username', process.env.BETA10_USERNAME);
+            await page.type('#password', process.env.BETA10_PASSWORD);
+            
+            // Hacer click en "Entrar" y esperar navegación
+            await Promise.all([
+                page.click('input[type="submit"]'),
+                page.waitForNavigation({ waitUntil: 'networkidle2' })
+            ]);
+            
+            console.log('Login completado. Navegando a la página de entrada...');
+            
+            // Navegar de nuevo a la página de entrada
+            await page.goto(presenciaUrl, { waitUntil: 'networkidle2' });
         }
-        console.log('Navegación exitosa, la sesión es válida.');
-        await page.screenshot({path: 'debug.png'});
-        console.log('Página HTML:', await page.content());
-        // --------------------------------------------------------------------
-        // ¡NUEVO PASO AÑADIDO! Esperar a que la ventana de diálogo aparezca.
-        // --------------------------------------------------------------------
-        console.log('Paso 3: Esperando el diálogo de confirmación...');
-        await page.waitForSelector('dialog', { visible: true, timeout: 15000 });
-        console.log('Diálogo encontrado. Rellenando datos del fichaje.');
 
-        // 3. Rellenar el formulario de fichaje (ahora Paso 4)
+        console.log('Navegación exitosa, sesión válida.');
+        
+        // Verificar que estamos en la página correcta
+        console.log('Paso 3: Esperando el diálogo de confirmación...');
+        
+        // Buscar el diálogo - probamos diferentes selectores
+        let dialogFound = false;
+        const selectors = ['dialog', 'div[role="dialog"]', '.ui-dialog', '[data-role="dialog"]'];
+        
+        for (const selector of selectors) {
+            try {
+                await page.waitForSelector(selector, { visible: true, timeout: 3000 });
+                console.log(`Diálogo encontrado con selector: ${selector}`);
+                dialogFound = true;
+                break;
+            } catch (e) {
+                console.log(`No se encontró diálogo con selector: ${selector}`);
+            }
+        }
+        
+        if (!dialogFound) {
+            // Si no encontramos diálogo, capturar debug info
+            await page.screenshot({path: 'debug.png'});
+            const pageContent = await page.content();
+            console.log('DEBUG - Contenido de la página:', pageContent.substring(0, 1000) + '...');
+            throw new Error('No se pudo encontrar el diálogo de confirmación');
+        }
+
+        console.log('Paso 4: Rellenando datos del fichaje...');
+
+        // Rellenar el formulario de fichaje
         await page.waitForSelector('#id_punto_acceso', { visible: true });
         await page.type('#id_punto_acceso', point);
 
@@ -77,7 +104,7 @@ app.post('/api/beta10', async (req, res) => {
             document.querySelector('#id_timestamp').value = time;
         }, location.latitude.toString(), location.longitude.toString(), location.accuracy.toString(), location.timestamp);
         
-        // 4. Enviar el formulario (ahora Paso 5)
+        // Enviar el formulario
         console.log('Paso 5: Enviando el fichaje...');
         await page.waitForSelector('a.boton.aceptar', { visible: true });
         await Promise.all([
