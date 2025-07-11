@@ -1,4 +1,4 @@
-// server.js - VERSIÓN FINAL - Usando Cookie de Sesión
+// server.js - VERSIÓN FINAL v2 - Esperando el diálogo de confirmación
 
 const express = require('express');
 const puppeteer = require('puppeteer');
@@ -28,14 +28,12 @@ app.post('/api/beta10', async (req, res) => {
         browser = await puppeteer.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            executablePath: '/opt/google/chrome/google-chrome' // Usamos la ruta que descubrimos que era la correcta
+            executablePath: '/opt/google/chrome/google-chrome'
         });
 
         const page = await browser.newPage();
         const BASE_URL = 'https://9teknic.movilidadbeta10.es:9001';
 
-        // --- ESTRATEGIA DE COOKIE ---
-        // 1. Inyectar la cookie de sesión que hemos guardado en las variables de entorno.
         console.log('Paso 1: Inyectando cookie de sesión.');
         const sessionCookie = {
             name: 'sessionid',
@@ -47,24 +45,28 @@ app.post('/api/beta10', async (req, res) => {
         };
         await page.setCookie(sessionCookie);
         
-        // 2. Ir DIRECTAMENTE a la página de la acción. Ya no hacemos login.
         const presenciaUrl = `${BASE_URL}/presencia/${action}/`;
         console.log(`Paso 2: Navegando a ${presenciaUrl} con la sesión activa.`);
         await page.goto(presenciaUrl, { waitUntil: 'networkidle2' });
 
-        // Verificar que no nos ha redirigido a la página de login
         if (page.url().includes('login')) {
-            throw new Error('La cookie de sesión ha caducado o es inválida. Inicia sesión de nuevo y actualiza la cookie en Render.');
+            throw new Error('La cookie de sesión ha caducado o es inválida.');
         }
         console.log('Navegación exitosa, la sesión es válida.');
+        
+        // --------------------------------------------------------------------
+        // ¡NUEVO PASO AÑADIDO! Esperar a que la ventana de diálogo aparezca.
+        // --------------------------------------------------------------------
+        console.log('Paso 3: Esperando el diálogo de confirmación...');
+        await page.waitForSelector('div[role="dialog"]', { visible: true, timeout: 15000 });
+        console.log('Diálogo encontrado. Rellenando datos del fichaje.');
 
-        // 3. Rellenar el formulario de fichaje
-        console.log('Paso 3: Rellenando datos del fichaje.');
-        await page.waitForSelector('#id_punto_acceso', { visible: true, timeout: 15000 });
+        // 3. Rellenar el formulario de fichaje (ahora Paso 4)
+        await page.waitForSelector('#id_punto_acceso', { visible: true });
         await page.type('#id_punto_acceso', point);
 
         const obsText = `GPS: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} (±${Math.round(location.accuracy)}m) - App Control Jornada`;
-        await page.waitForSelector('#id_observaciones', { visible: true, timeout: 15000 });
+        await page.waitForSelector('#id_observaciones', { visible: true });
         await page.type('#id_observaciones', obsText);
         
         await page.evaluate((lat, lon, acc, time) => {
@@ -74,9 +76,9 @@ app.post('/api/beta10', async (req, res) => {
             document.querySelector('#id_timestamp').value = time;
         }, location.latitude.toString(), location.longitude.toString(), location.accuracy.toString(), location.timestamp);
         
-        // 4. Enviar el formulario
-        console.log('Paso 4: Enviando el fichaje...');
-        await page.waitForSelector('a.boton.aceptar', { visible: true, timeout: 15000 });
+        // 4. Enviar el formulario (ahora Paso 5)
+        console.log('Paso 5: Enviando el fichaje...');
+        await page.waitForSelector('a.boton.aceptar', { visible: true });
         await Promise.all([
             page.click('a.boton.aceptar'),
             page.waitForNavigation({ waitUntil: 'networkidle2' })
@@ -86,7 +88,7 @@ app.post('/api/beta10', async (req, res) => {
             throw new Error('El fichaje falló. No se redirigió a la lista de presencia.');
         }
 
-        console.log('¡Fichaje realizado con éxito!');
+        console.log('¡¡¡FICHAJE REALIZADO CON ÉXITO!!!');
         res.status(200).json({ success: true });
 
     } catch (error) {
