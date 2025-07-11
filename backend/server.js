@@ -72,6 +72,12 @@ app.post('/api/beta10', async (req, res) => {
             try {
                 await page.waitForSelector(selector, { visible: true, timeout: 3000 });
                 console.log(`Diálogo encontrado con selector: ${selector}`);
+                console.log('Capturando HTML del diálogo...');
+                const dialogHTML = await page.evaluate(() => {
+                    const dialog = document.querySelector('div[role="dialog"]');
+                    return dialog ? dialog.innerHTML : 'No se pudo capturar el diálogo';
+                });
+                console.log('HTML del diálogo:', dialogHTML);
                 dialogFound = true;
                 break;
             } catch (e) {
