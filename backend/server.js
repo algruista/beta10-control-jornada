@@ -53,7 +53,8 @@ app.post('/api/beta10', async (req, res) => {
             throw new Error('La cookie de sesión ha caducado o es inválida.');
         }
         console.log('Navegación exitosa, la sesión es válida.');
-        
+        await page.screenshot({path: 'debug.png'});
+        console.log('Página HTML:', await page.content());
         // --------------------------------------------------------------------
         // ¡NUEVO PASO AÑADIDO! Esperar a que la ventana de diálogo aparezca.
         // --------------------------------------------------------------------
