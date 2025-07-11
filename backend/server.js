@@ -112,12 +112,26 @@ app.post('/api/beta10', async (req, res) => {
         }, location.latitude.toString(), location.longitude.toString());
 
         // Enviar el formulario
-        console.log('Paso 5: Enviando el fichaje...');
-        await page.waitForSelector('#submit-presencia', { visible: true });
-        await Promise.all([
-            page.click('#submit-presencia'),
-            page.waitForNavigation({ waitUntil: 'networkidle2' })
-        ]);
+        // Enviar el formulario
+console.log('Paso 5: Enviando el fichaje...');
+await page.waitForSelector('#submit-presencia', { visible: true });
+
+// Click en el botón y esperar con timeout más largo
+console.log('Haciendo click en Aceptar...');
+await page.click('#submit-presencia');
+
+// Esperar navegación con timeout más largo
+try {
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+    console.log('Navegación completada después del envío');
+} catch (e) {
+    console.log('Timeout en navegación, verificando URL actual...');
+    console.log('URL actual:', page.url());
+    
+    // Capturar contenido para ver si hay errores
+    const pageContent = await page.content();
+    console.log('Contenido actual:', pageContent.substring(0, 500) + '...');
+}
 
         if (!page.url().includes('/presencia/')) {
             throw new Error('El fichaje falló. No se redirigió a la lista de presencia.');
