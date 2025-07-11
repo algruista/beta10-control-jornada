@@ -1,4 +1,4 @@
-// server.js - VERSIÓN FINAL v3 - Con login automático
+// server.js - VERSIÓN FINAL CORREGIDA CON LOS SELECTORES REALES
 
 const express = require('express');
 const puppeteer = require('puppeteer');
@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 });
 
 app.post('/api/beta10', async (req, res) => {
-    console.log("Petición recibida para /api/beta10 con login automático.");
+    console.log("Petición recibida para /api/beta10.");
     const { action, point, location } = req.body;
 
     if (!action || !point || !location) {
@@ -28,7 +28,7 @@ app.post('/api/beta10', async (req, res) => {
         browser = await puppeteer.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            executablePath: '/opt/google/chrome/google-chrome'
+            executablePath: '/usr/bin/google-chrome-stable'
         });
 
         const page = await browser.newPage();
@@ -38,88 +38,55 @@ app.post('/api/beta10', async (req, res) => {
         console.log(`Paso 1: Navegando a ${presenciaUrl}`);
         await page.goto(presenciaUrl, { waitUntil: 'networkidle2' });
 
-        // Verificar si estamos en la página de login
-        const isLoginPage = await page.$('#username');
+        const isLoginPage = await page.$('#id_username');
         if (isLoginPage) {
-            console.log('Paso 2: Detectado formulario de login. Haciendo login automático...');
-            
-            // Rellenar credenciales
-            await page.type('#username', process.env.BETA10_USERNAME);
-            await page.type('#password', process.env.BETA10_PASSWORD);
-            
-            // Hacer click en "Entrar" y esperar navegación
+            console.log('Paso 2: Detectado formulario de login. Haciendo login...');
+            await page.type('#id_username', process.env.BETA10_USER);
+            await page.type('#id_password', process.env.BETA10_PASS);
             await Promise.all([
-                page.click('input[type="submit"]'),
+                page.click('button[type="submit"]'),
                 page.waitForNavigation({ waitUntil: 'networkidle2' })
             ]);
-            
-            console.log('Login completado. Navegando a la página de entrada...');
-            
-            // Navegar de nuevo a la página de entrada
             await page.goto(presenciaUrl, { waitUntil: 'networkidle2' });
         }
-
+        
         console.log('Navegación exitosa, sesión válida.');
-        
-        // Verificar que estamos en la página correcta
         console.log('Paso 3: Esperando el diálogo de confirmación...');
-        
-        // Buscar el diálogo - probamos diferentes selectores
-        let dialogFound = false;
-        const selectors = ['dialog', 'div[role="dialog"]', '.ui-dialog', '[data-role="dialog"]'];
-        
-        for (const selector of selectors) {
-            try {
-                await page.waitForSelector(selector, { visible: true, timeout: 3000 });
-                console.log(`Diálogo encontrado con selector: ${selector}`);
-                console.log('Capturando HTML del diálogo...');
-                const dialogHTML = await page.evaluate(() => {
-                    const dialog = document.querySelector('div[role="dialog"]');
-                    return dialog ? dialog.innerHTML : 'No se pudo capturar el diálogo';
-                });
-                console.log('HTML del diálogo:', dialogHTML);
-                dialogFound = true;
-                break;
-            } catch (e) {
-                console.log(`No se encontró diálogo con selector: ${selector}`);
-            }
-        }
-        
-        if (!dialogFound) {
-            // Si no encontramos diálogo, capturar debug info
-            await page.screenshot({path: 'debug.png'});
-            const pageContent = await page.content();
-            console.log('DEBUG - Contenido de la página:', pageContent.substring(0, 1000) + '...');
-            throw new Error('No se pudo encontrar el diálogo de confirmación');
-        }
+        await page.waitForSelector('div[role="dialog"]', { visible: true, timeout: 15000 });
+        console.log('Diálogo encontrado. Rellenando datos del fichaje...');
 
-        console.log('Paso 4: Rellenando datos del fichaje...');
-
-        // Rellenar el formulario de fichaje
-        await page.waitForSelector('#id_punto_acceso', { visible: true });
-        await page.type('#id_punto_acceso', point);
+        // =================================================================
+        // ¡¡CORRECCIONES FINALES APLICADAS!!
+        // =================================================================
+        const puntoAccesoSelector = `#id_punto_${action}`;
+        const observacionesSelector = `#id_observaciones_${action}`;
+        const submitSelector = '#submit-presencia';
+        
+        console.log(`Paso 4: Rellenando campos con selectores: ${puntoAccesoSelector}, ${observacionesSelector}`);
+        
+        await page.waitForSelector(puntoAccesoSelector, { visible: true });
+        await page.type(puntoAccesoSelector, point);
 
         const obsText = `GPS: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} (±${Math.round(location.accuracy)}m) - App Control Jornada`;
-        await page.waitForSelector('#id_observaciones', { visible: true });
-        await page.type('#id_observaciones', obsText);
+        await page.waitForSelector(observacionesSelector, { visible: true });
+        await page.type(observacionesSelector, obsText);
         
-        await page.evaluate((lat, lon, acc, time) => {
-            document.querySelector('#id_latitude').value = lat;
-            document.querySelector('#id_longitude').value = lon;
-            document.querySelector('#id_accuracy').value = acc;
-            document.querySelector('#id_timestamp').value = time;
-        }, location.latitude.toString(), location.longitude.toString(), location.accuracy.toString(), location.timestamp);
+        // Estos campos ocultos parecen usar "entrada" o "salida" también
+        await page.evaluate((lat, lon, acc, time, action) => {
+            document.querySelector(`#id_latitud_${action}`).value = lat;
+            document.querySelector(`#id_longitud_${action}`).value = lon;
+            // Nota: No hay campos de accuracy o timestamp en el HTML del diálogo, los omitimos para evitar errores.
+        }, location.latitude.toString(), location.longitude.toString(), location.accuracy.toString(), location.timestamp, action);
         
-        // Enviar el formulario
         console.log('Paso 5: Enviando el fichaje...');
-        await page.waitForSelector('a.boton.aceptar', { visible: true });
+        await page.waitForSelector(submitSelector, { visible: true });
         await Promise.all([
-            page.click('a.boton.aceptar'),
+            page.click(submitSelector),
             page.waitForNavigation({ waitUntil: 'networkidle2' })
         ]);
 
         if (!page.url().includes('/presencia/')) {
-            throw new Error('El fichaje falló. No se redirigió a la lista de presencia.');
+            throw new Error(`El fichaje falló. No se redirigió a la lista de presencia. URL final: ${page.url()}`);
         }
 
         console.log('¡¡¡FICHAJE REALIZADO CON ÉXITO!!!');
