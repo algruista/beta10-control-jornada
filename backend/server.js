@@ -58,7 +58,7 @@ app.post('/api/beta10', async (req, res) => {
         // ¡NUEVO PASO AÑADIDO! Esperar a que la ventana de diálogo aparezca.
         // --------------------------------------------------------------------
         console.log('Paso 3: Esperando el diálogo de confirmación...');
-        await page.waitForSelector('div[role="dialog"]', { visible: true, timeout: 15000 });
+        await page.waitForSelector('dialog[open]', { visible: true, timeout: 15000 });
         console.log('Diálogo encontrado. Rellenando datos del fichaje.');
 
         // 3. Rellenar el formulario de fichaje (ahora Paso 4)
